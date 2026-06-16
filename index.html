@@ -1,0 +1,1045 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#9FA1FF">
+<title>實習醫學生 報到 / 離職管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* 主色盤：來自使用者調色板 */
+    --c1:#9FA1FF;        /* 藍紫 */
+    --c2:#B5BAFF;        /* 淺藍紫 */
+    --c3:#AEE2FF;        /* 天藍 */
+    --c4:#D9F9DF;        /* 薄荷綠 */
+
+    --bg:#F0F1FF;
+    --surface:#FFFFFF;
+    --ink:#2C2C4A;
+    --ink-soft:#7B7CA8;
+    --primary:#9FA1FF;
+    --primary-dark:#6B6EE0;
+    --primary-soft:#E8E9FF;
+    --accent:#AEE2FF;
+    --accent-soft:#E5F5FF;
+    --danger:#B94040;
+    --danger-soft:#FAEAEA;
+    --border:#D6D7F5;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Noto Sans TC", sans-serif;
+    background:#F5F2EC;
+    color:var(--ink);
+    line-height:1.6;
+  }
+  header{
+    padding:32px 24px 16px;
+    max-width:1100px;
+    margin:0 auto;
+  }
+  header h1{
+    font-family:"Noto Serif TC", serif;
+    font-weight:700;
+    font-size:clamp(24px,4vw,34px);
+    margin:0 0 4px;
+    color:#5254C0;
+    letter-spacing:.04em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+
+  .tabs{
+    max-width:1100px;
+    margin:18px auto 0;
+    padding:0 24px;
+    display:flex;
+    gap:10px;
+  }
+  .tab-btn{
+    font-family:"Noto Serif TC", serif;
+    font-size:15px;
+    font-weight:700;
+    padding:10px 22px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:.15s ease;
+  }
+  .tab-btn.active{
+    background:var(--c1);
+    color:#fff;
+    border-color:var(--c1);
+    box-shadow:0 2px 8px rgba(159,161,255,0.35);
+  }
+  .tab-btn:not(.active):hover{
+    border-color:var(--primary);
+    color:#5254C0;
+  }
+
+  main{
+    max-width:1100px;
+    margin:0 auto;
+    padding:20px 24px 60px;
+  }
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .toolbar .count{
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+  .btn{
+    font-family:"Noto Sans TC", sans-serif;
+    font-weight:700;
+    font-size:14px;
+    padding:10px 18px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    transition:.15s ease;
+  }
+  .btn-primary{background:var(--c1); color:#fff; box-shadow:0 2px 8px rgba(159,161,255,0.3);}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-ghost{background:var(--surface); color:var(--ink); border:1px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--primary); color:var(--primary-dark);}
+  .btn-danger{background:var(--danger-soft); color:var(--danger);}
+  .btn-danger:hover{background:var(--danger); color:#fff;}
+  .btn-small{padding:6px 12px; font-size:13px; border-radius:8px;}
+
+  /* Cards */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(300px,1fr));
+    gap:16px;
+  }
+  .card{
+    background:var(--surface);
+    border-radius:var(--radius);
+    border:1px solid var(--border);
+    border-left:5px solid var(--c1);
+    padding:18px 18px 14px;
+    position:relative;
+  }
+  .panel#checkout .card{border-left-color:var(--c3);}
+
+  .card-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .card-head h3{
+    font-family:"Noto Serif TC", serif;
+    font-size:19px;
+    margin:0;
+    color:var(--ink);
+  }
+  .card-meta{
+    margin:4px 0 12px;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .card-meta span + span::before{content:" · ";}
+
+  .ring{flex-shrink:0;}
+  .ring text{
+    font-family:"Noto Sans TC", sans-serif;
+    font-size:11px;
+    font-weight:700;
+    fill:var(--ink);
+  }
+
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin:6px 0 10px;
+  }
+  .chip{
+    font-size:12px;
+    padding:5px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:.12s ease;
+    user-select:none;
+  }
+  .chip.done{
+    background:#EAEBFF;
+    border-color:var(--c1);
+    color:#5254C0;
+    font-weight:500;
+  }
+  .panel#checkout .chip.done{
+    background:var(--accent-soft);
+    border-color:var(--c3);
+    color:#2980B9;
+  }
+  .chip:hover{filter:brightness(0.97);}
+
+  .note{
+    font-size:13px;
+    color:var(--ink-soft);
+    background:var(--bg);
+    border-radius:8px;
+    padding:8px 10px;
+    margin:6px 0 10px;
+  }
+
+  .card-foot{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    border-top:1px solid var(--border);
+    padding-top:10px;
+    margin-top:6px;
+  }
+
+  /* 逾期未完成卡片 */
+  :root{
+    --overdue:#B94040;
+    --overdue-soft:#FAEAEA;
+    --overdue-mid:#E57373;
+  }
+  .card.overdue{
+    border-left-color:var(--overdue) !important;
+    background:var(--overdue-soft);
+  }
+  .card.overdue .card-head h3{
+    color:var(--overdue);
+  }
+  .overdue-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--overdue);
+    background:#fff;
+    border:1px solid var(--overdue-mid);
+    border-radius:999px;
+    padding:3px 10px;
+    margin-bottom:8px;
+  }
+  .overdue-divider{
+    grid-column:1/-1;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:12px 0 4px;
+    color:var(--overdue);
+    font-size:13px;
+    font-weight:700;
+  }
+  .overdue-divider::before,.overdue-divider::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--overdue-mid);
+  }
+
+  /* 完成灰階卡片 */
+  .card.completed{
+    opacity:0.55;
+    filter:grayscale(60%);
+    border-left-color:var(--border) !important;
+    background:var(--bg);
+    transition:opacity .2s, filter .2s;
+  }
+  .card.completed:hover{
+    opacity:0.85;
+    filter:grayscale(20%);
+  }
+  .card.completed .card-head h3{
+    color:var(--ink-soft);
+    text-decoration:line-through;
+  }
+  .completed-divider{
+    grid-column:1/-1;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:12px 0 4px;
+    color:#4A9B5F;
+    font-size:13px;
+    font-weight:700;
+  }
+  .completed-divider::before,.completed-divider::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:#A8E6B8;
+  }
+
+  /* 搜尋列 */
+  .search-bar{
+    width:100%;
+    margin-bottom:16px;
+    position:relative;
+  }
+  .search-bar input{
+    width:100%;
+    padding:10px 14px 10px 40px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    font-family:"Noto Sans TC", sans-serif;
+    font-size:14px;
+    background:var(--surface);
+    color:var(--ink);
+    outline:none;
+    transition:.15s ease;
+  }
+  .search-bar input:focus{
+    border-color:var(--c1);
+    box-shadow:0 0 0 3px rgba(159,161,255,0.25);
+  }
+  .search-bar .search-icon{
+    position:absolute;
+    left:13px; top:50%;
+    transform:translateY(-50%);
+    color:var(--ink-soft);
+    pointer-events:none;
+    font-size:15px;
+  }
+  .search-bar .clear-btn{
+    position:absolute;
+    right:12px; top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    cursor:pointer;
+    color:var(--ink-soft);
+    font-size:16px;
+    padding:0;
+    line-height:1;
+  }
+  .search-highlight{
+    background:#FFF3CD;
+    border-radius:2px;
+    padding:0 1px;
+  }
+
+  /* Empty / setup states */
+  .empty{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--ink-soft);
+    border:1px dashed var(--border);
+    border-radius:var(--radius);
+    background:var(--surface);
+  }
+  .empty h3{font-family:"Noto Serif TC",serif; color:var(--ink); margin-top:0;}
+
+  .setup-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    margin-bottom:18px;
+  }
+  .setup-card h3{margin:0 0 8px; font-family:"Noto Serif TC",serif; font-size:16px; color:var(--primary-dark);}
+  .setup-card p{margin:0 0 10px; font-size:13px; color:var(--ink-soft);}
+  .setup-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .setup-row input{
+    flex:1;
+    min-width:240px;
+    padding:9px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:13px;
+    font-family:monospace;
+  }
+  .status-dot{
+    display:inline-block;
+    width:8px; height:8px; border-radius:50%;
+    margin-right:6px;
+    background:var(--danger);
+  }
+  .status-dot.ok{background:var(--primary);}
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(32,48,44,.45);
+    display:none;
+    align-items:center; justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .overlay.active{display:flex;}
+  .modal{
+    background:var(--surface);
+    border-radius:var(--radius);
+    padding:24px;
+    width:100%;
+    max-width:480px;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .modal h2{
+    font-family:"Noto Serif TC", serif;
+    margin:0 0 14px;
+    color:#5254C0;
+    font-size:20px;
+  }
+  .field{margin-bottom:12px;}
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:700;
+    margin-bottom:4px;
+    color:var(--ink);
+  }
+  .field input, .field textarea{
+    width:100%;
+    padding:9px 11px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-family:"Noto Sans TC", sans-serif;
+    font-size:14px;
+  }
+  .field textarea{resize:vertical; min-height:60px;}
+  .checks-field{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:4px;
+  }
+  .check-toggle{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:6px 10px;
+    cursor:pointer;
+  }
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:18px;
+  }
+  .toast{
+    position:fixed;
+    bottom:20px; left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:999px;
+    font-size:13px;
+    opacity:0;
+    transition:.25s ease;
+    z-index:100;
+    pointer-events:none;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* ===== 手機響應式 ===== */
+  @media (max-width: 600px){
+    header{
+      padding: 20px 16px 12px;
+    }
+    header h1{
+      font-size: 22px;
+    }
+    .tabs{
+      padding: 0 16px;
+      gap: 8px;
+    }
+    .tab-btn{
+      flex: 1;
+      text-align: center;
+      font-size: 14px;
+      padding: 10px 10px;
+    }
+    main{
+      padding: 14px 16px 80px;
+    }
+    .toolbar{
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .toolbar .count{
+      text-align: center;
+      font-size: 13px;
+    }
+    #addCheckinBtn, #addCheckoutBtn{
+      width: 100%;
+      padding: 13px;
+      font-size: 15px;
+      border-radius: 12px;
+    }
+    .search-bar input{
+      font-size: 16px; /* 防止 iOS 自動縮放 */
+      padding: 12px 40px 12px 42px;
+    }
+    .grid{
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .card{
+      padding: 16px 14px 12px;
+    }
+    .card-head h3{
+      font-size: 18px;
+    }
+    .card-meta{
+      font-size: 12px;
+    }
+    .chip{
+      font-size: 13px;
+      padding: 7px 12px;
+      /* 手機上更大的點擊面積 */
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .card-foot{
+      gap: 8px;
+    }
+    .card-foot .btn{
+      flex: 1;
+      text-align: center;
+      padding: 10px 8px;
+      font-size: 14px;
+    }
+    .setup-card{
+      padding: 14px;
+    }
+    .setup-row{
+      flex-direction: column;
+    }
+    .setup-row input{
+      min-width: unset;
+      font-size: 13px;
+    }
+    .setup-row .btn{
+      width: 100%;
+    }
+    /* Modal 手機全版面 */
+    .overlay{
+      padding: 0;
+      align-items: flex-end;
+    }
+    .modal{
+      border-radius: 20px 20px 0 0;
+      max-height: 92vh;
+      padding: 20px 18px 32px;
+    }
+    .modal h2{
+      font-size: 18px;
+    }
+    .field input, .field textarea{
+      font-size: 16px; /* 防 iOS 縮放 */
+    }
+    .modal-actions{
+      flex-direction: column-reverse;
+      gap: 8px;
+    }
+    .modal-actions .btn{
+      width: 100%;
+      padding: 13px;
+      font-size: 15px;
+    }
+    .checks-field{
+      gap: 8px;
+    }
+    .check-toggle{
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    .toast{
+      width: calc(100% - 32px);
+      text-align: center;
+      bottom: 24px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>實習醫學生 報到 ‧ 離職 管理</h1>
+  <p>所有紀錄即時同步至 Google 試算表，可線上新增、勾選進度、編輯與刪除。</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="checkin">報到登記</button>
+  <button class="tab-btn" data-tab="checkout">離職登記</button>
+</div>
+
+<main>
+  <!-- 設定區：第一次使用需先貼上 Apps Script 網址 -->
+  <div class="setup-card" id="setupCard">
+    <h3><span class="status-dot" id="statusDot"></span>連線設定</h3>
+    <p>請將部署完成的 Google Apps Script 網路應用程式網址貼在下方（設定方式請見 設定說明.md）。</p>
+    <div class="setup-row">
+      <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+      <button class="btn btn-primary" id="connectBtn">連線並載入資料</button>
+    </div>
+  </div>
+
+  <!-- 報到 -->
+  <section class="panel active" id="checkin">
+    <div class="toolbar">
+      <span class="count" id="checkinCount">尚未載入資料</span>
+      <button class="btn btn-primary" id="addCheckinBtn">＋ 新增報到紀錄</button>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="checkinSearch" placeholder="搜尋姓名、學校、身分、傳呼號碼…" oninput="filterGrid('checkin')">
+      <button class="clear-btn" onclick="clearSearch('checkin')" title="清除">✕</button>
+    </div>
+    <div class="grid" id="checkinGrid"></div>
+  </section>
+
+  <!-- 離職 -->
+  <section class="panel" id="checkout">
+    <div class="toolbar">
+      <span class="count" id="checkoutCount">尚未載入資料</span>
+      <button class="btn btn-primary" id="addCheckoutBtn">＋ 新增離職紀錄</button>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="checkoutSearch" placeholder="搜尋姓名、學校、身分、人事號…" oninput="filterGrid('checkout')">
+      <button class="clear-btn" onclick="clearSearch('checkout')" title="清除">✕</button>
+    </div>
+    <div class="grid" id="checkoutGrid"></div>
+  </section>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   設定：部署好 Apps Script 後，可直接把網址貼在這裡，
+   就不用每次手動連線（也可以用上面的輸入框暫時連線）。
+   ========================================================= */
+let SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnqP1ZyZ8n6xx5JwHYs6UTt0K0NwiFVHgiLwBLhlczmIMdIoZwGnnvoLlw1ZCiLQ/exec";
+
+/* 欄位定義 ------------------------------------------------ */
+const CHECKIN_FIELDS = [
+  {key:"姓名", label:"姓名", type:"text", required:true},
+  {key:"學校", label:"學校", type:"text"},
+  {key:"身分", label:"身分", type:"text"},
+  {key:"報到日", label:"報到日", type:"date"},
+  {key:"傳呼號碼", label:"傳呼號碼", type:"text"},
+  {key:"備註", label:"備註", type:"textarea"},
+];
+const CHECKIN_CHECKS = ["寄信給學生","E化工作表","體檢表","健康名冊","給安全衛生室"];
+
+const CHECKOUT_FIELDS = [
+  {key:"姓名", label:"姓名", type:"text", required:true},
+  {key:"學校", label:"學校", type:"text"},
+  {key:"身分", label:"身分", type:"text"},
+  {key:"人事號", label:"人事號", type:"text"},
+  {key:"傳呼號碼", label:"傳呼號碼", type:"text"},
+  {key:"離職日", label:"離職日", type:"date"},
+];
+const CHECKOUT_CHECKS = ["夜學單","考核表","EPortfolio","公務機","刀房卡","鑰匙"];
+
+const CONFIG = {
+  checkin:  {fields: CHECKIN_FIELDS,  checks: CHECKIN_CHECKS,  grid:"checkinGrid",  count:"checkinCount"},
+  checkout: {fields: CHECKOUT_FIELDS, checks: CHECKOUT_CHECKS, grid:"checkoutGrid", count:"checkoutCount"},
+};
+
+const state = {
+  checkin:  {headers:[], rows:[]},
+  checkout: {headers:[], rows:[]},
+};
+
+/* 小工具 -------------------------------------------------- */
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2200);
+}
+function setStatus(ok){
+  document.getElementById("statusDot").classList.toggle("ok", ok);
+  document.getElementById("setupCard").style.display = ok ? "none" : "block";
+}
+function isChecked(v){
+  return v === true || v === "TRUE" || v === "true" || v === "V" || v === "✓" || v === "是";
+}
+
+/* API 呼叫 ------------------------------------------------- */
+async function apiGet(type){
+  const url = SCRIPT_URL + "?type=" + type;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("讀取失敗");
+  return res.json();
+}
+async function apiPost(payload){
+  const res = await fetch(SCRIPT_URL, {
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"}, // 避免 CORS 預檢
+    body: JSON.stringify(payload)
+  });
+  if(!res.ok) throw new Error("送出失敗");
+  return res.json();
+}
+
+/* 載入與渲染 ------------------------------------------------ */
+async function loadType(type){
+  const cfg = CONFIG[type];
+  document.getElementById(cfg.count).textContent = "載入中…";
+  try{
+    const data = await apiGet(type);
+    state[type].headers = data.headers || [];
+    state[type].rows = data.rows || [];
+    render(type);
+    setStatus(true);
+  }catch(err){
+    console.error(err);
+    document.getElementById(cfg.count).textContent = "連線失敗";
+    showToast("載入失敗，請確認 Apps Script 部署設定");
+    setStatus(false);
+  }
+}
+
+function render(type, keyword){
+  const cfg = CONFIG[type];
+  const grid = document.getElementById(cfg.grid);
+  const allRows = state[type].rows;
+  const kw = (keyword || "").trim().toLowerCase();
+  const rows = kw ? allRows.filter(row=>{
+    const searchable = [row["姓名"], row["學校"], row["身分"], row["傳呼號碼"], row["人事號"], row["備註"]].join(" ").toLowerCase();
+    return searchable.includes(kw);
+  }) : allRows;
+
+  document.getElementById(cfg.count).textContent =
+    kw ? `${rows.length} / ${allRows.length} 筆符合` : `${allRows.length} 筆紀錄`;
+
+  if(allRows.length === 0){
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <h3>還沒有任何紀錄</h3>
+        <p>按右上方「新增」按鈕建立第一筆資料。</p>
+      </div>`;
+    return;
+  }
+  if(rows.length === 0){
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <h3>找不到符合的紀錄</h3>
+        <p>試試其他關鍵字，或清除搜尋。</p>
+      </div>`;
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  function isAllDone(row){
+    return CONFIG[type].checks.every(c => isChecked(row[c]));
+  }
+  function isOverdue(row){
+    if(isAllDone(row)) return false;
+    const dateKey = type==="checkin" ? "報到日" : "離職日";
+    const dv = row[dateKey];
+    if(!dv) return false;
+    const d = new Date(dv);
+    d.setHours(0,0,0,0);
+    return d < today;
+  }
+
+  const active   = rows.filter(row => !isAllDone(row) && !isOverdue(row));
+  const overdue  = rows.filter(row => isOverdue(row));
+  const completed= rows.filter(row => isAllDone(row));
+
+  let html = active.map(row => cardHTML(type, row, kw, false, false)).join("");
+
+  if(overdue.length > 0){
+    html += `<div class="overdue-divider">⚠️ 逾期未完成 ${overdue.length} 筆</div>`;
+    html += overdue.map(row => cardHTML(type, row, kw, false, true)).join("");
+  }
+  if(completed.length > 0){
+    html += `<div class="completed-divider">已完成 ${completed.length} 筆</div>`;
+    html += completed.map(row => cardHTML(type, row, kw, true, false)).join("");
+  }
+  grid.innerHTML = html;
+
+  // 綁定 chip 切換
+  grid.querySelectorAll(".chip").forEach(chip=>{
+    chip.addEventListener("click", ()=>toggleCheck(type, chip));
+  });
+  // 綁定編輯／刪除
+  grid.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click", ()=>openForm(type, b.dataset.edit)));
+  grid.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", ()=>deleteRow(type, b.dataset.del)));
+}
+
+/* 搜尋過濾 -------------------------------------------------- */
+function filterGrid(type){
+  const input = document.getElementById(type==="checkin"?"checkinSearch":"checkoutSearch");
+  const kw = input.value;
+  // 顯示/隱藏清除按鈕
+  const clearBtn = input.nextElementSibling;
+  clearBtn.style.display = kw ? "block" : "none";
+  render(type, kw);
+}
+function clearSearch(type){
+  const input = document.getElementById(type==="checkin"?"checkinSearch":"checkoutSearch");
+  input.value = "";
+  input.nextElementSibling.style.display = "none";
+  render(type, "");
+  input.focus();
+}
+
+/* 關鍵字高亮 */
+function highlight(text, kw){
+  if(!kw) return escapeHTML(text);
+  const safe = escapeHTML(text);
+  const re = new RegExp("("+kw.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")", "gi");
+  return safe.replace(re, '<mark class="search-highlight">$1</mark>');
+}
+
+function cardHTML(type, row, kw, isCompleted, isOverdue){
+  const cfg = CONFIG[type];
+  const checks = cfg.checks;
+  const done = checks.filter(c=>isChecked(row[c])).length;
+  const total = checks.length;
+  const pct = total ? done/total : 0;
+
+  const r = 16, c = 2*Math.PI*r;
+  const ringColor = type==="checkin" ? "var(--c1)" : "var(--c3)";
+
+  const metaParts = [];
+  if(type==="checkin"){
+    if(row["學校"]) metaParts.push(row["學校"]);
+    if(row["身分"]) metaParts.push(row["身分"]);
+    if(row["報到日"]) metaParts.push("報到日 "+formatDate(row["報到日"]));
+    if(row["傳呼號碼"]) metaParts.push("呼叫器 "+row["傳呼號碼"]);
+  }else{
+    if(row["學校"]) metaParts.push(row["學校"]);
+    if(row["身分"]) metaParts.push(row["身分"]);
+    if(row["人事號"]) metaParts.push("人事號 "+row["人事號"]);
+    if(row["離職日"]) metaParts.push("離職日 "+formatDate(row["離職日"]));
+    if(row["傳呼號碼"]) metaParts.push("呼叫器 "+row["傳呼號碼"]);
+  }
+
+  const chips = checks.map(c=>{
+    const d = isChecked(row[c]);
+    return `<span class="chip ${d?"done":""}" data-field="${escapeAttr(c)}" data-row="${row._row}">${d?"✓ ":""}${escapeHTML(c)}</span>`;
+  }).join("");
+
+  const note = (type==="checkin" && row["備註"]) ? `<div class="note">${escapeHTML(row["備註"])}</div>` : "";
+
+  return `
+  <div class="card${isCompleted?" completed":""}${isOverdue?" overdue":""}">
+    <div class="card-head">
+      <div>
+        <h3>${highlight(row["姓名"]||"（未命名）", kw)}</h3>
+        <div class="card-meta">${metaParts.map(m=>`<span>${highlight(m, kw)}</span>`).join("")}</div>
+      </div>
+      <svg class="ring" width="40" height="40" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="${r}" fill="none" stroke="var(--border)" stroke-width="4"/>
+        <circle cx="20" cy="20" r="${r}" fill="none" stroke="${ringColor}" stroke-width="4"
+          stroke-dasharray="${(pct*c).toFixed(1)} ${c.toFixed(1)}"
+          stroke-linecap="round" transform="rotate(-90 20 20)"/>
+        <text x="20" y="24" text-anchor="middle">${done}/${total}</text>
+      </svg>
+    </div>
+    ${isOverdue ? `<div class="overdue-badge">⚠️ 逾期未完成</div>` : ""}
+  <div class="chips">${chips}</div>
+    ${note}
+    <div class="card-foot">
+      <button class="btn btn-ghost btn-small" data-edit="${row._row}">編輯</button>
+      <button class="btn btn-danger btn-small" data-del="${row._row}">刪除</button>
+    </div>
+  </div>`;
+}
+
+function formatDate(v){
+  if(!v) return "";
+  // 若是 Date 物件，用本地時區取年月日，避免 UTC 換算造成日期差一天
+  if(v instanceof Date){
+    const y = v.getFullYear();
+    const m = String(v.getMonth()+1).padStart(2,"0");
+    const d = String(v.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  // 若是含 T 的 ISO 字串（如 "2025-06-01T00:00:00.000Z"），只取前10碼日期部分
+  // 再用本地時區重新解析，防止時差問題
+  if(typeof v === "string" && v.includes("T")){
+    const dt = new Date(v);
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth()+1).padStart(2,"0");
+    const d = String(dt.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+  // 已經是 yyyy-MM-dd 字串，直接回傳
+  return v;
+}
+function escapeHTML(s){
+  return String(s ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function escapeAttr(s){return escapeHTML(s);}
+
+/* 勾選切換（直接點 chip 即時更新） -------------------------- */
+async function toggleCheck(type, chip){
+  const rowNum = chip.dataset.row;
+  const field = chip.dataset.field;
+  const row = state[type].rows.find(r=>String(r._row)===String(rowNum));
+  if(!row) return;
+  const newVal = !isChecked(row[field]);
+  chip.classList.toggle("done", newVal);
+  chip.textContent = (newVal?"✓ ":"") + field;
+  const data = {...row};
+  data[field] = newVal ? "TRUE" : "FALSE";
+  try{
+    await apiPost({type, action:"update", row: row._row, data});
+    row[field] = data[field];
+    render(type); // 重新整理進度環
+  }catch(err){
+    showToast("更新失敗，請稍後再試");
+    loadType(type);
+  }
+}
+
+/* 刪除 ------------------------------------------------------ */
+async function deleteRow(type, rowNum){
+  if(!confirm("確定要刪除這筆紀錄嗎？此動作會直接從試算表移除。")) return;
+  try{
+    await apiPost({type, action:"delete", row: Number(rowNum)});
+    showToast("已刪除");
+    await loadType(type);
+  }catch(err){
+    showToast("刪除失敗");
+  }
+}
+
+/* 新增 / 編輯表單 -------------------------------------------- */
+function openForm(type, rowNum){
+  const cfg = CONFIG[type];
+  const isEdit = !!rowNum;
+  const row = isEdit ? state[type].rows.find(r=>String(r._row)===String(rowNum)) : null;
+
+  const fieldsHTML = cfg.fields.map(f=>{
+    const val = row ? (row[f.key] ?? "") : "";
+    if(f.type==="textarea"){
+      return `<div class="field"><label>${escapeHTML(f.label)}</label>
+        <textarea name="${escapeAttr(f.key)}">${escapeHTML(val)}</textarea></div>`;
+    }
+    let inputVal = val;
+    if(f.type==="date") inputVal = formatDate(val) || "";
+    return `<div class="field"><label>${escapeHTML(f.label)}${f.required?" *":""}</label>
+      <input type="${f.type}" name="${escapeAttr(f.key)}" value="${escapeAttr(inputVal)}" ${f.required?"required":""}></div>`;
+  }).join("");
+
+  const checksHTML = `<div class="field"><label>處理狀態</label>
+    <div class="checks-field">
+      ${cfg.checks.map(c=>{
+        const checked = row ? isChecked(row[c]) : false;
+        return `<label class="check-toggle"><input type="checkbox" name="${escapeAttr(c)}" ${checked?"checked":""}> ${escapeHTML(c)}</label>`;
+      }).join("")}
+    </div></div>`;
+
+  document.getElementById("modal").innerHTML = `
+    <h2>${isEdit?"編輯":"新增"}${type==="checkin"?"報到":"離職"}紀錄</h2>
+    <form id="recordForm">
+      ${fieldsHTML}
+      ${checksHTML}
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelBtn">取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>`;
+  document.getElementById("overlay").classList.add("active");
+  document.getElementById("cancelBtn").onclick = closeModal;
+
+  document.getElementById("recordForm").onsubmit = async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = {};
+    cfg.fields.forEach(f=> data[f.key] = fd.get(f.key) || "");
+    cfg.checks.forEach(c => data[c] = fd.get(c) ? "TRUE" : "FALSE");
+
+    try{
+      if(isEdit){
+        await apiPost({type, action:"update", row: row._row, data});
+        showToast("已更新");
+      }else{
+        await apiPost({type, action:"add", data});
+        showToast("已新增");
+      }
+      closeModal();
+      await loadType(type);
+    }catch(err){
+      showToast("儲存失敗，請確認連線設定");
+    }
+  };
+}
+function closeModal(){
+  document.getElementById("overlay").classList.remove("active");
+}
+
+/* Tabs ------------------------------------------------------- */
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+/* 連線設定 ------------------------------------------------------ */
+document.getElementById("addCheckinBtn").addEventListener("click", ()=>openForm("checkin"));
+document.getElementById("addCheckoutBtn").addEventListener("click", ()=>openForm("checkout"));
+document.getElementById("overlay").addEventListener("click", (e)=>{ if(e.target.id==="overlay") closeModal(); });
+
+document.getElementById("connectBtn").addEventListener("click", ()=>{
+  const url = document.getElementById("scriptUrlInput").value.trim();
+  if(!url){ showToast("請先貼上 Apps Script 網址"); return; }
+  SCRIPT_URL = url;
+  loadType("checkin");
+  loadType("checkout");
+});
+
+/* 啟動 ------------------------------------------------------ */
+window.addEventListener("DOMContentLoaded", ()=>{
+  if(SCRIPT_URL){
+    // 有網址就直接隱藏設定區，自動連線
+    document.getElementById("setupCard").style.display = "none";
+    document.getElementById("scriptUrlInput").value = SCRIPT_URL;
+    loadType("checkin");
+    loadType("checkout");
+  }else{
+    setStatus(false);
+  }
+});
+</script>
+</body>
+</html>
