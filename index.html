@@ -261,6 +261,38 @@
     background:var(--overdue-mid);
   }
 
+  /* 批次日期色標 */
+  .batch-dot{
+    display:inline-block;
+    width:10px; height:10px;
+    border-radius:50%;
+    margin-right:5px;
+    flex-shrink:0;
+    vertical-align:middle;
+  }
+  .batch-tag{
+    display:inline-flex;
+    align-items:center;
+    font-size:11px;
+    font-weight:700;
+    border-radius:999px;
+    padding:2px 9px 2px 6px;
+    margin-bottom:6px;
+    letter-spacing:.02em;
+  }
+  .date-group-divider{
+    grid-column:1/-1;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:14px 0 2px;
+    font-size:13px;
+    font-weight:700;
+  }
+  .date-group-divider .dot-line{
+    flex:1; height:2px; border-radius:1px;
+  }
+
   /* 完成灰階卡片 */
   .card.completed{
     opacity:0.55;
@@ -676,6 +708,38 @@ const CONFIG = {
   checkout: {fields: CHECKOUT_FIELDS, checks: CHECKOUT_CHECKS, grid:"checkoutGrid", count:"checkoutCount"},
 };
 
+// 批次顏色調色盤（背景色、文字色、線條色）
+const BATCH_PALETTE = [
+  {bg:"#E8E9FF", text:"#5254C0", line:"#9FA1FF"},  // 藍紫
+  {bg:"#D6F5FF", text:"#1A7FA8", line:"#AEE2FF"},  // 天藍
+  {bg:"#D9F9DF", text:"#2E7D45", line:"#7ED99A"},  // 薄荷綠
+  {bg:"#FFF3CD", text:"#8A6200", line:"#FFCC4D"},  // 金黃
+  {bg:"#FFE5F0", text:"#A0275A", line:"#F48CBB"},  // 玫瑰
+  {bg:"#E8F5E9", text:"#2E6B3E", line:"#81C784"},  // 草綠
+  {bg:"#FDE8D8", text:"#8B3A00", line:"#F4A261"},  // 橙
+  {bg:"#EDE7F6", text:"#512DA8", line:"#B39DDB"},  // 紫
+];
+
+// 建立日期→顏色索引的快取
+const _batchColorCache = {};
+function getBatchColor(type, dateVal){
+  if(!dateVal) return null;
+  const key = type + "|" + dateVal;
+  if(_batchColorCache[key] !== undefined) return _batchColorCache[key];
+  // 取得該 type 所有不重複日期，按出現順序排序
+  const dateKey = type==="checkin" ? "報到日" : "離職日";
+  const seen = [];
+  (state[type].rows || []).forEach(r=>{
+    const d = r[dateKey];
+    if(d && seen.indexOf(d) === -1) seen.push(d);
+  });
+  seen.sort(); // 按日期排序，確保顏色固定
+  seen.forEach((d, i)=>{
+    _batchColorCache[type+"|"+d] = BATCH_PALETTE[i % BATCH_PALETTE.length];
+  });
+  return _batchColorCache[key] || null;
+}
+
 const state = {
   checkin:  {headers:[], rows:[]},
   checkout: {headers:[], rows:[]},
@@ -721,6 +785,7 @@ async function loadType(type){
     const data = await apiGet(type);
     state[type].headers = data.headers || [];
     state[type].rows = data.rows || [];
+
     render(type);
     setStatus(true);
   }catch(err){
@@ -759,18 +824,22 @@ function render(type, keyword){
     return;
   }
 
+  // 重設批次顏色快取（資料更新後重算）
+  Object.keys(_batchColorCache).forEach(k=>{ if(k.startsWith(type+"|")) delete _batchColorCache[k]; });
+
   const today = new Date();
   today.setHours(0,0,0,0);
+  const dateKey = type==="checkin" ? "報到日" : "離職日";
 
   function isAllDone(row){
     return CONFIG[type].checks.every(c => isChecked(row[c]));
   }
   function isOverdue(row){
     if(isAllDone(row)) return false;
-    const dateKey = type==="checkin" ? "報到日" : "離職日";
     const dv = row[dateKey];
     if(!dv) return false;
-    const d = new Date(dv);
+    const d = parseLocalDate(dv);
+    if(!d) return false;
     d.setHours(0,0,0,0);
     return d < today;
   }
@@ -779,15 +848,45 @@ function render(type, keyword){
   const overdue  = rows.filter(row => isOverdue(row));
   const completed= rows.filter(row => isAllDone(row));
 
-  let html = active.map(row => cardHTML(type, row, kw, false, false)).join("");
+  // 進行中：按日期分組，同日期用同色區塊
+  function groupByDate(arr){
+    const groups = {};
+    const order = [];
+    arr.forEach(row=>{
+      const d = row[dateKey] || "（未設定日期）";
+      if(!groups[d]){ groups[d]=[]; order.push(d); }
+      groups[d].push(row);
+    });
+    return {groups, order};
+  }
+
+  function renderGroup(arr, isDone, isOd){
+    const {groups, order} = groupByDate(arr);
+    let h = "";
+    order.forEach(date=>{
+      const color = getBatchColor(type, date === "（未設定日期）" ? null : date);
+      const label = date === "（未設定日期）" ? "未設定日期" : (type==="checkin"?"報到日 ":"離職日 ") + date;
+      const lineColor = color ? color.line : "var(--border)";
+      const textColor = color ? color.text : "var(--ink-soft)";
+      h += `<div class="date-group-divider" style="color:${textColor}">
+        <div class="dot-line" style="background:${lineColor}"></div>
+        ${escapeHTML(label)}（${groups[date].length} 人）
+        <div class="dot-line" style="background:${lineColor}"></div>
+      </div>`;
+      h += groups[date].map(row => cardHTML(type, row, kw, isDone, isOd)).join("");
+    });
+    return h;
+  }
+
+  let html = renderGroup(active, false, false);
 
   if(overdue.length > 0){
     html += `<div class="overdue-divider">⚠️ 逾期未完成 ${overdue.length} 筆</div>`;
-    html += overdue.map(row => cardHTML(type, row, kw, false, true)).join("");
+    html += renderGroup(overdue, false, true);
   }
   if(completed.length > 0){
     html += `<div class="completed-divider">已完成 ${completed.length} 筆</div>`;
-    html += completed.map(row => cardHTML(type, row, kw, true, false)).join("");
+    html += renderGroup(completed, true, false);
   }
   grid.innerHTML = html;
 
@@ -871,7 +970,10 @@ function cardHTML(type, row, kw, isCompleted, isOverdue){
         <text x="20" y="24" text-anchor="middle">${done}/${total}</text>
       </svg>
     </div>
-    ${isOverdue ? `<div class="overdue-badge">⚠️ 逾期未完成</div>` : ""}
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      ${(()=>{ const col=getBatchColor(type, (type==="checkin"?row["報到日"]:row["離職日"])||null); return col ? `<span class="batch-tag" style="background:${col.bg};color:${col.text}"><span class="batch-dot" style="background:${col.line}"></span>${type==="checkin"?"報到":"離職"} ${escapeHTML(formatDate(type==="checkin"?row["報到日"]:row["離職日"]) || "")}</span>` : ""; })()}
+      ${isOverdue ? `<div class="overdue-badge">⚠️ 逾期未完成</div>` : ""}
+    </div>
   <div class="chips">${chips}</div>
     ${note}
     <div class="card-foot">
@@ -881,26 +983,77 @@ function cardHTML(type, row, kw, isCompleted, isOverdue){
   </div>`;
 }
 
+/* 統一日期解析，支援以下格式（台灣本地時間，不經 UTC）：
+   - "2026/6/22"   → yyyy/M/D（試算表主要格式）
+   - "6/22"        → M/D，自動補 2026 年
+   - "2026-06-22"  → yyyy-MM-dd
+   - "2026-06-22T..." → ISO 字串取前10碼再解析 */
+function parseLocalDate(v){
+  if(!v) return null;
+  let s = String(v).trim();
+  if(!s) return null;
+
+  // ISO 字串（如 2026-06-21T16:00:00.000Z）：加 8 小時轉台灣時間再取日期
+  if(s.includes("T")){
+    const utcMs = new Date(s).getTime();
+    const twMs = utcMs + 8 * 60 * 60 * 1000;
+    const tw = new Date(twMs);
+    return new Date(tw.getUTCFullYear(), tw.getUTCMonth(), tw.getUTCDate());
+  }
+
+  let y, m, d;
+
+  if(s.includes("-")){
+    // yyyy-MM-dd
+    const p = s.split("-").map(Number);
+    if(p.length !== 3) return null;
+    [y, m, d] = p;
+  } else if(s.includes("/")){
+    const p = s.split("/").map(Number);
+    if(p.length === 3){
+      // yyyy/M/D 或 yy/M/D
+      [y, m, d] = p;
+      // 補全年份（如 26 → 2026）
+      if(y < 100) y += 2000;
+    } else if(p.length === 2){
+      // M/D → 補 2026
+      y = 2026;
+      [m, d] = p;
+    } else return null;
+  } else return null;
+
+  if(!y || !m || !d) return null;
+  const dt = new Date(y, m - 1, d);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
 function formatDate(v){
   if(!v) return "";
-  // 若是 Date 物件，用本地時區取年月日，避免 UTC 換算造成日期差一天
+  // Date 物件直接取本地年月日，顯示 yyyy/M/D
   if(v instanceof Date){
     const y = v.getFullYear();
-    const m = String(v.getMonth()+1).padStart(2,"0");
-    const d = String(v.getDate()).padStart(2,"0");
-    return `${y}-${m}-${d}`;
+    const m = v.getMonth()+1;
+    const d = v.getDate();
+    return `${y}/${m}/${d}`;
   }
-  // 若是含 T 的 ISO 字串（如 "2025-06-01T00:00:00.000Z"），只取前10碼日期部分
-  // 再用本地時區重新解析，防止時差問題
-  if(typeof v === "string" && v.includes("T")){
-    const dt = new Date(v);
-    const y = dt.getFullYear();
-    const m = String(dt.getMonth()+1).padStart(2,"0");
-    const d = String(dt.getDate()).padStart(2,"0");
-    return `${y}-${m}-${d}`;
-  }
-  // 已經是 yyyy-MM-dd 字串，直接回傳
-  return v;
+  // 字串：用 parseLocalDate 解析後，顯示成 yyyy/M/D 跟試算表一致
+  const dt = parseLocalDate(String(v));
+  if(!dt) return String(v);
+  const y = dt.getFullYear();
+  const m = dt.getMonth()+1;
+  const d = dt.getDate();
+  return `${y}/${m}/${d}`;
+}
+
+/* 給 input[type=date] 用的格式（必須是 yyyy-MM-dd）*/
+function formatDateInput(v){
+  if(!v) return "";
+  const dt = parseLocalDate(String(v));
+  if(!dt) return "";
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth()+1).padStart(2,"0");
+  const d = String(dt.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
 }
 function escapeHTML(s){
   return String(s ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -953,7 +1106,7 @@ function openForm(type, rowNum){
         <textarea name="${escapeAttr(f.key)}">${escapeHTML(val)}</textarea></div>`;
     }
     let inputVal = val;
-    if(f.type==="date") inputVal = formatDate(val) || "";
+    if(f.type==="date") inputVal = formatDateInput(val) || "";
     return `<div class="field"><label>${escapeHTML(f.label)}${f.required?" *":""}</label>
       <input type="${f.type}" name="${escapeAttr(f.key)}" value="${escapeAttr(inputVal)}" ${f.required?"required":""}></div>`;
   }).join("");
