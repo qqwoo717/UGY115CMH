@@ -700,6 +700,7 @@ const CHECKOUT_FIELDS = [
   {key:"人事號", label:"人事號", type:"text"},
   {key:"傳呼號碼", label:"傳呼號碼", type:"text"},
   {key:"離職日", label:"離職日", type:"date"},
+  {key:"備註", label:"備註", type:"textarea"},
 ];
 const CHECKOUT_CHECKS = ["夜學單","考核表","EPortfolio","公務機","刀房卡","鑰匙"];
 
@@ -953,7 +954,7 @@ function cardHTML(type, row, kw, isCompleted, isOverdue){
     return `<span class="chip ${d?"done":""}" data-field="${escapeAttr(c)}" data-row="${row._row}">${d?"✓ ":""}${escapeHTML(c)}</span>`;
   }).join("");
 
-  const note = (type==="checkin" && row["備註"]) ? `<div class="note">${escapeHTML(row["備註"])}</div>` : "";
+  const note = row["備註"] ? `<div class="note">${escapeHTML(row["備註"])}</div>` : "";
 
   return `
   <div class="card${isCompleted?" completed":""}${isOverdue?" overdue":""}">
